@@ -25,7 +25,7 @@ jobs:
         run: |
           CONDA_LIB_BIN=$(python -c "import sys, os; print(os.path.join(sys.prefix, 'Library', 'bin'))")
           echo "Carpeta de DLLs de conda: $CONDA_LIB_BIN"
-          ls "$CONDA_LIB_BIN" | grep -i "iomp\|mkl" || echo "(aviso: no se  ven DLLs mkl/iomp ahi, revisar)"
+          ls "$CONDA_LIB_BIN" | grep -i "iomp\|mkl" || echo "(aviso: no se ven DLLs mkl/iomp ahi, revisar)"
 
           python -m nuitka \
             --mode=standalone \
@@ -37,16 +37,18 @@ jobs:
             --enable-plugin=dll-files \
             --enable-plugin=data-files \
             --include-data-files="${CONDA_LIB_BIN}/libiomp5md.dll=extra_dlls/libiomp5md.dll" \
+            --include-data-files="${CONDA_LIB_BIN}/libiomp5md.dll=compiler/libiomp5md.dll" \
             --include-data-files="${CONDA_LIB_BIN}/mkl_*.dll=extra_dlls/" \
             --assume-yes-for-downloads \
             --show-progress \
             --output-dir=dist \
             diag_numpy_scipy.py
 
-      - name: Comprobar que las DLLs llegaron a extra_dlls
+      - name: Comprobar que las DLLs llegaron a extra_dlls y compiler
         shell: bash -el {0}
         run: |
           ls -la dist/diag_numpy_scipy.dist/extra_dlls/ || echo "(AVISO: no existe extra_dlls -- las include-data-files fallaron)"
+          ls -la dist/diag_numpy_scipy.dist/compiler/ || echo "(AVISO: no existe compiler/ -- las include-data-files fallaron)"
 
       - name: Comprimir carpeta standalone para subirla
         shell: bash -el {0}
