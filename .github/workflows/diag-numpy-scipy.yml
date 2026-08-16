@@ -28,22 +28,29 @@ jobs:
           ls "$CONDA_LIB_BIN" | grep -i "iomp\|mkl" || echo "(aviso: no se ven DLLs mkl/iomp ahi, revisar)"
 
           python -m nuitka \
-            --mode=onefile \
+            --mode=standalone \
             --windows-console-mode=force \
             --force-stdout-spec="{PROGRAM_BASE}.out.txt" \
             --force-stderr-spec="{PROGRAM_BASE}.err.txt" \
             --mingw64 \
             --lto=no \
-            --include-data-dir="${CONDA_LIB_BIN}=." \
+            --enable-plugin=dll-files \
+            --enable-plugin=data-files \
             --assume-yes-for-downloads \
             --show-progress \
             --output-dir=dist \
-            --output-filename=DiagNumpyScipy.exe \
             diag_numpy_scipy.py
+
+      - name: Comprimir carpeta standalone para subirla
+        shell: bash -el {0}
+        run: |
+          cd dist
+          ls -la diag_numpy_scipy.dist/ | grep -i "mkl\|iomp" || echo "(aviso: no se ven DLLs mkl/iomp en la carpeta final)"
+          python -c "import shutil; shutil.make_archive('DiagNumpyScipy-standalone', 'zip', '.', 'diag_numpy_scipy.dist')"
 
       - name: Subir diagnostico como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: DiagNumpyScipy-windows
-          path: dist/DiagNumpyScipy.exe
+          path: dist/DiagNumpyScipy-standalone.zip
           retention-days: 30
