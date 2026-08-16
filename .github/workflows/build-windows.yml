@@ -71,6 +71,13 @@ jobs:
             --force-stderr-spec="{PROGRAM_BASE}.err.txt" \
             --mingw64 \
             --lto=no \
+            --nofollow-import-to=pandas \
+            --nofollow-import-to=openpyxl \
+            --nofollow-import-to=gi \
+            --nofollow-import-to=cffi \
+            --nofollow-import-to=pytest \
+            --nofollow-import-to=IPython \
+            --nofollow-import-to=tkinter \
             --assume-yes-for-downloads \
             --show-progress \
             --output-dir=dist \
