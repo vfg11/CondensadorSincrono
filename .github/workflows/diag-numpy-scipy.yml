@@ -1,0 +1,49 @@
+name: Diagnostico numpy/scipy (Nuitka)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Miniconda (conda-forge)
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: condenser-gui
+          environment-file: environment.yml
+          python-version: '3.11'
+          auto-activate-base: false
+          channels: conda-forge
+          channel-priority: strict
+
+      - name: Construir diagnostico con Nuitka (sin sympy/PySide6 -- rapido)
+        shell: bash -el {0}
+        run: |
+          CONDA_LIB_BIN=$(python -c "import sys, os; print(os.path.join(sys.prefix, 'Library', 'bin'))")
+          echo "Carpeta de DLLs de conda: $CONDA_LIB_BIN"
+          ls "$CONDA_LIB_BIN" | grep -i "iomp\|mkl" || echo "(aviso: no se ven DLLs mkl/iomp ahi, revisar)"
+
+          python -m nuitka \
+            --mode=onefile \
+            --windows-console-mode=force \
+            --force-stdout-spec="{PROGRAM_BASE}.out.txt" \
+            --force-stderr-spec="{PROGRAM_BASE}.err.txt" \
+            --mingw64 \
+            --lto=no \
+            --include-data-dir="${CONDA_LIB_BIN}=." \
+            --assume-yes-for-downloads \
+            --show-progress \
+            --output-dir=dist \
+            --output-filename=DiagNumpyScipy.exe \
+            diag_numpy_scipy.py
+
+      - name: Subir diagnostico como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiagNumpyScipy-windows
+          path: dist/DiagNumpyScipy.exe
+          retention-days: 30
