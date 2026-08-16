@@ -33,6 +33,14 @@ jobs:
         run: |
           python -c "import PySide6, control, slycot, scipy, numpy, matplotlib, sympy, nuitka; print('Todas las dependencias OK')"
 
+      - name: Cache del directorio de cache de Nuitka (acelera ejecuciones futuras)
+        uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/Nuitka/Nuitka/Cache
+          key: nuitka-cache-${{ runner.os }}-${{ hashFiles('environment.yml') }}
+          restore-keys: |
+            nuitka-cache-${{ runner.os }}-
+
       # Nuitka se invoca AQUI directamente (no via Nuitka-Action de
       # terceros) para tener control total del shell -- esa accion usa
       # 'bash' simple en sus pasos internos, no 'bash -el', y no hay
@@ -44,9 +52,13 @@ jobs:
           python -m nuitka \
             --mode=onefile \
             --enable-plugin=pyside6 \
-            --windows-console-mode=disable \
+            --windows-console-mode=force \
+            --force-stdout-spec="{PROGRAM_BASE}.out.txt" \
+            --force-stderr-spec="{PROGRAM_BASE}.err.txt" \
             --mingw64 \
+            --lto=no \
             --assume-yes-for-downloads \
+            --show-progress \
             --output-dir=dist \
             --output-filename=CondensadorSincronoGUI.exe \
             --include-package-data=matplotlib \
