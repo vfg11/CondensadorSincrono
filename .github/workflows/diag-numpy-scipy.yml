@@ -25,7 +25,7 @@ jobs:
         run: |
           CONDA_LIB_BIN=$(python -c "import sys, os; print(os.path.join(sys.prefix, 'Library', 'bin'))")
           echo "Carpeta de DLLs de conda: $CONDA_LIB_BIN"
-          ls "$CONDA_LIB_BIN" | grep -i "iomp\|mkl" || echo "(aviso: no se ven DLLs mkl/iomp ahi, revisar)"
+          ls "$CONDA_LIB_BIN" | grep -i "iomp\|mkl" || echo "(aviso: no se  ven DLLs mkl/iomp ahi, revisar)"
 
           python -m nuitka \
             --mode=standalone \
