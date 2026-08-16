@@ -41,11 +41,25 @@ jobs:
           restore-keys: |
             nuitka-cache-${{ runner.os }}-
 
-      # Nuitka se invoca AQUI directamente (no via Nuitka-Action de
-      # terceros) para tener control total del shell -- esa accion usa
-      # 'bash' simple en sus pasos internos, no 'bash -el', y no hay
-      # garantia de que reconozca el entorno conda activado aqui, que
-      # es imprescindible para slycot en Windows.
+      # Copia todos los .py necesarios (01_model, 02_linearization,
+      # 05_gui) a UNA sola carpeta antes de compilar. Sin esto, Nuitka
+      # no encuentra "genqec_model"/"controls"/"linearize_condenser" en
+      # tiempo de ejecucion (ModuleNotFoundError) porque esos modulos
+      # viven en carpetas hermanas del punto de entrada, y el proyecto
+      # los localiza en ejecucion normal via sys.path -- un truco que
+      # Nuitka no resuelve automaticamente al compilar. Copiarlos todos
+      # juntos evita depender de PYTHONPATH (con sus propias
+      # ambiguedades de separador ':' vs ';' entre bash y Windows).
+      - name: Preparar carpeta de compilacion (unificar modulos)
+        shell: bash -el {0}
+        run: |
+          rm -rf build_staging
+          mkdir build_staging
+          cp 01_model/*.py build_staging/
+          cp 02_linearization/linearize_condenser.py build_staging/
+          cp 05_gui/*.py build_staging/
+          ls -la build_staging/
+
       - name: Construir ejecutable con Nuitka
         shell: bash -el {0}
         run: |
@@ -66,7 +80,7 @@ jobs:
             --product-name="CondensadorSincronoGUI" \
             --file-version=1.0.0.0 \
             --product-version=1.0.0.0 \
-            05_gui/main_app.py
+            build_staging/main_app.py
 
       - name: Comprobar que el ejecutable se genero
         shell: bash -el {0}
