@@ -8,7 +8,29 @@ es generico de numpy/scipy bajo esta combinacion conda+Nuitka, o algo
 mas especifico del resto de la app. Compila mucho mas rapido (sin
 sympy ni PySide6 de por medio).
 """
+import os
 import sys
+# DEBE ir antes de importar numpy/scipy. Fix documentado para el
+# conflicto "OMP: Error #15: Initializing libiomp5md.dll, but found
+# libiomp5md.dll already initialized" -- ocurre cuando mas de un
+# runtime OpenMP se carga en el mismo proceso (aqui: el de Intel/MKL
+# que trae numpy/scipy de conda, y posiblemente el de MinGW64/GCC que
+# usa Nuitka para compilar). Ver chat para el diagnostico completo.
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+
+# Registrar explicitamente la carpeta con las DLLs de MKL/OpenMP que el
+# workflow copia a mano junto al ejecutable (ver
+# .github/workflows/diag-numpy-scipy.yml, --include-data-files) --
+# necesario porque ni --include-data-dir ni los plugins dll-files/
+# data-files de Nuitka reconocieron correctamente libiomp5md.dll para
+# esta combinacion concreta conda-forge+MKL (ver chat, verificado con
+# Process Monitor). os.add_dll_directory es la API oficial de Windows
+# para esto (Python 3.8+).
+if sys.platform == 'win32' and hasattr(os, 'add_dll_directory'):
+    _exe_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    _extra_dll_dir = os.path.join(_exe_dir, 'extra_dlls')
+    if os.path.isdir(_extra_dll_dir):
+        os.add_dll_directory(_extra_dll_dir)
 import numpy as np
 import scipy
 import scipy.linalg as sla

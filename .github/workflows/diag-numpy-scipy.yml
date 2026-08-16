@@ -36,10 +36,17 @@ jobs:
             --lto=no \
             --enable-plugin=dll-files \
             --enable-plugin=data-files \
+            --include-data-files="${CONDA_LIB_BIN}/libiomp5md.dll=extra_dlls/libiomp5md.dll" \
+            --include-data-files="${CONDA_LIB_BIN}/mkl_*.dll=extra_dlls/" \
             --assume-yes-for-downloads \
             --show-progress \
             --output-dir=dist \
             diag_numpy_scipy.py
+
+      - name: Comprobar que las DLLs llegaron a extra_dlls
+        shell: bash -el {0}
+        run: |
+          ls -la dist/diag_numpy_scipy.dist/extra_dlls/ || echo "(AVISO: no existe extra_dlls -- las include-data-files fallaron)"
 
       - name: Comprimir carpeta standalone para subirla
         shell: bash -el {0}
