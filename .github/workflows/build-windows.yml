@@ -1,0 +1,70 @@
+name: Build Windows Executable (Nuitka)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '01_model/**'
+      - '02_linearization/**'
+      - '05_gui/**'
+      - 'environment.yml'
+      - '.github/workflows/build-windows.yml'
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Miniconda (conda-forge -- necesario para slycot en Windows)
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: condenser-gui
+          environment-file: environment.yml
+          python-version: '3.11'
+          auto-activate-base: false
+          channels: conda-forge
+          channel-priority: strict
+
+      - name: Verificar que todas las dependencias importan
+        shell: bash -el {0}
+        run: |
+          python -c "import PySide6, control, slycot, scipy, numpy, matplotlib, sympy, nuitka; print('Todas las dependencias OK')"
+
+      # Nuitka se invoca AQUI directamente (no via Nuitka-Action de
+      # terceros) para tener control total del shell -- esa accion usa
+      # 'bash' simple en sus pasos internos, no 'bash -el', y no hay
+      # garantia de que reconozca el entorno conda activado aqui, que
+      # es imprescindible para slycot en Windows.
+      - name: Construir ejecutable con Nuitka
+        shell: bash -el {0}
+        run: |
+          python -m nuitka \
+            --mode=onefile \
+            --enable-plugin=pyside6 \
+            --windows-console-mode=disable \
+            --mingw64 \
+            --assume-yes-for-downloads \
+            --output-dir=dist \
+            --output-filename=CondensadorSincronoGUI.exe \
+            --include-package-data=matplotlib \
+            --company-name="Estudio Condensador Sincrono" \
+            --product-name="CondensadorSincronoGUI" \
+            --file-version=1.0.0.0 \
+            --product-version=1.0.0.0 \
+            05_gui/main_app.py
+
+      - name: Comprobar que el ejecutable se genero
+        shell: bash -el {0}
+        run: |
+          ls -la dist/
+          test -f dist/CondensadorSincronoGUI.exe
+
+      - name: Subir ejecutable como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: CondensadorSincronoGUI-windows
+          path: dist/CondensadorSincronoGUI.exe
+          retention-days: 30

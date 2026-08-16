@@ -1,0 +1,29 @@
+__pycache__/
+*.pyc
+*.pyo
+
+# Salidas de Nuitka
+*.build/
+*.dist/
+*.onefile-build/
+dist/
+build/
+*.exe
+
+# Salidas de ejecucion (npz/png regenerables, no versionar)
+outputs/*.npz
+outputs/*.png
+
+# Proyectos guardados por el usuario desde la GUI
+*.study.npz
+
+# Entornos
+.venv/
+venv/
+.conda/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
