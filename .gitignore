@@ -2,10 +2,7 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Salidas de Nuitka
-*.build/
-*.dist/
-*.onefile-build/
+# Salidas de compilacion (PyInstaller usa build/ y dist/)
 dist/
 build/
 *.exe

@@ -11,6 +11,5 @@ dependencies:
   - control
   - slycot
   - pip
-  - ccache
   - pip:
-      - nuitka
+      - pyinstaller

@@ -1,4 +1,4 @@
-name: Build Windows Executable (Nuitka)
+name: Build Windows Executable (PyInstaller)
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - '02_linearization/**'
       - '05_gui/**'
       - 'environment.yml'
+      - 'main_app.spec'
       - '.github/workflows/build-windows.yml'
   workflow_dispatch: {}
 
@@ -31,63 +32,12 @@ jobs:
       - name: Verificar que todas las dependencias importan
         shell: bash -el {0}
         run: |
-          python -c "import PySide6, control, slycot, scipy, numpy, matplotlib, sympy, nuitka; print('Todas las dependencias OK')"
+          python -c "import PySide6, control, slycot, scipy, numpy, matplotlib, sympy, PyInstaller; print('Todas las dependencias OK')"
 
-      - name: Cache del directorio de cache de Nuitka (acelera ejecuciones futuras)
-        uses: actions/cache@v4
-        with:
-          path: ~/AppData/Local/Nuitka/Nuitka/Cache
-          key: nuitka-cache-${{ runner.os }}-${{ hashFiles('environment.yml') }}
-          restore-keys: |
-            nuitka-cache-${{ runner.os }}-
-
-      # Copia todos los .py necesarios (01_model, 02_linearization,
-      # 05_gui) a UNA sola carpeta antes de compilar. Sin esto, Nuitka
-      # no encuentra "genqec_model"/"controls"/"linearize_condenser" en
-      # tiempo de ejecucion (ModuleNotFoundError) porque esos modulos
-      # viven en carpetas hermanas del punto de entrada, y el proyecto
-      # los localiza en ejecucion normal via sys.path -- un truco que
-      # Nuitka no resuelve automaticamente al compilar. Copiarlos todos
-      # juntos evita depender de PYTHONPATH (con sus propias
-      # ambiguedades de separador ':' vs ';' entre bash y Windows).
-      - name: Preparar carpeta de compilacion (unificar modulos)
+      - name: Construir ejecutable con PyInstaller
         shell: bash -el {0}
         run: |
-          rm -rf build_staging
-          mkdir build_staging
-          cp 01_model/*.py build_staging/
-          cp 02_linearization/linearize_condenser.py build_staging/
-          cp 05_gui/*.py build_staging/
-          ls -la build_staging/
-
-      - name: Construir ejecutable con Nuitka
-        shell: bash -el {0}
-        run: |
-          python -m nuitka \
-            --mode=onefile \
-            --enable-plugin=pyside6 \
-            --windows-console-mode=force \
-            --force-stdout-spec="{PROGRAM_BASE}.out.txt" \
-            --force-stderr-spec="{PROGRAM_BASE}.err.txt" \
-            --mingw64 \
-            --lto=no \
-            --nofollow-import-to=pandas \
-            --nofollow-import-to=openpyxl \
-            --nofollow-import-to=gi \
-            --nofollow-import-to=cffi \
-            --nofollow-import-to=pytest \
-            --nofollow-import-to=IPython \
-            --nofollow-import-to=tkinter \
-            --assume-yes-for-downloads \
-            --show-progress \
-            --output-dir=dist \
-            --output-filename=CondensadorSincronoGUI.exe \
-            --include-package-data=matplotlib \
-            --company-name="Estudio Condensador Sincrono" \
-            --product-name="CondensadorSincronoGUI" \
-            --file-version=1.0.0.0 \
-            --product-version=1.0.0.0 \
-            build_staging/main_app.py
+          pyinstaller main_app.spec --noconfirm --clean
 
       - name: Comprobar que el ejecutable se genero
         shell: bash -el {0}

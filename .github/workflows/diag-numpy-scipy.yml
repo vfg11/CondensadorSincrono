@@ -1,4 +1,4 @@
-name: Diagnostico numpy/scipy (Nuitka)
+name: Diagnostico numpy/scipy (PyInstaller)
 
 on:
   workflow_dispatch: {}
@@ -20,46 +20,22 @@ jobs:
           channels: conda-forge
           channel-priority: strict
 
-      - name: Construir diagnostico con Nuitka (sin sympy/PySide6 -- rapido)
+      - name: Construir diagnostico con PyInstaller (sin sympy/PySide6 -- rapido)
         shell: bash -el {0}
         run: |
-          CONDA_LIB_BIN=$(python -c "import sys, os; print(os.path.join(sys.prefix, 'Library', 'bin'))")
-          echo "Carpeta de DLLs de conda: $CONDA_LIB_BIN"
-          ls "$CONDA_LIB_BIN" | grep -i "iomp\|mkl" || echo "(aviso: no se ven DLLs mkl/iomp ahi, revisar)"
-
-          python -m nuitka \
-            --mode=standalone \
-            --windows-console-mode=force \
-            --force-stdout-spec="{PROGRAM_BASE}.out.txt" \
-            --force-stderr-spec="{PROGRAM_BASE}.err.txt" \
-            --mingw64 \
-            --lto=no \
-            --enable-plugin=dll-files \
-            --enable-plugin=data-files \
-            --include-data-files="${CONDA_LIB_BIN}/libiomp5md.dll=extra_dlls/libiomp5md.dll" \
-            --include-data-files="${CONDA_LIB_BIN}/libiomp5md.dll=compiler/libiomp5md.dll" \
-            --include-data-files="${CONDA_LIB_BIN}/mkl_*.dll=extra_dlls/" \
-            --assume-yes-for-downloads \
-            --show-progress \
-            --output-dir=dist \
+          pyinstaller --onefile --console \
+            --name DiagNumpyScipy \
             diag_numpy_scipy.py
 
-      - name: Comprobar que las DLLs llegaron a extra_dlls y compiler
+      - name: Comprobar que el ejecutable se genero
         shell: bash -el {0}
         run: |
-          ls -la dist/diag_numpy_scipy.dist/extra_dlls/ || echo "(AVISO: no existe extra_dlls -- las include-data-files fallaron)"
-          ls -la dist/diag_numpy_scipy.dist/compiler/ || echo "(AVISO: no existe compiler/ -- las include-data-files fallaron)"
-
-      - name: Comprimir carpeta standalone para subirla
-        shell: bash -el {0}
-        run: |
-          cd dist
-          ls -la diag_numpy_scipy.dist/ | grep -i "mkl\|iomp" || echo "(aviso: no se ven DLLs mkl/iomp en la carpeta final)"
-          python -c "import shutil; shutil.make_archive('DiagNumpyScipy-standalone', 'zip', '.', 'diag_numpy_scipy.dist')"
+          ls -la dist/
+          test -f dist/DiagNumpyScipy.exe
 
       - name: Subir diagnostico como artefacto
         uses: actions/upload-artifact@v4
         with:
-          name: DiagNumpyScipy-windows
-          path: dist/DiagNumpyScipy-standalone.zip
+          name: DiagNumpyScipy-windows-pyinstaller
+          path: dist/DiagNumpyScipy.exe
           retention-days: 30
