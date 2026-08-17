@@ -151,7 +151,7 @@ def run_plc_test(controller_type, gains, params, Q0_actual, qref_func, Ts, t_tot
             Vref_unclamped = Vref0 + Kp * error + Ki * xi_pi
             Vref = float(np.clip(Vref_unclamped, AVR.VREF_MIN, AVR.VREF_MAX))
             if Ki != 0.0:
-                xi_pi -= (Vref - Vref_unclamped) / Ki
+                xi_pi += Ts * (Vref - Vref_unclamped) / Ki
 
         elif controller_type == 'LQI':
             Ar, Br, Cr = gains['Ar'], gains['Br'], gains['Cr']
@@ -179,7 +179,7 @@ def run_plc_test(controller_type, gains, params, Q0_actual, qref_func, Ts, t_tot
             Vref_unclamped = Vref0 - float(Kx @ x_hat) - Ki_ * xi_lqi
             Vref = float(np.clip(Vref_unclamped, AVR.VREF_MIN, AVR.VREF_MAX))
             if Ki_ != 0.0:
-                xi_lqi -= (Vref - Vref_unclamped) / Ki_
+                xi_lqi += Ts * (Vref - Vref_unclamped) / Ki_
 
         elif controller_type == 'Rele':
             db, rate = gains['dead_band'], gains['rate']
