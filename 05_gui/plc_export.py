@@ -218,9 +218,9 @@ PASO 5 -- Ley de control:
     Vref_sin_saturar = Vref0 - (Kx . x_hat) - Ki * xi
     Vref_saturado    = clip(Vref_sin_saturar, VREF_MIN, VREF_MAX)
 
-PASO 6 -- Anti-windup (retrocalculo) -- EL SIGNO IMPORTA, ver nota:
+PASO 6 -- Anti-windup (retrocalculo) -- EL SIGNO Y EL FACTOR Ts IMPORTAN, ver nota:
     SI Ki != 0:
-        xi = xi - (Vref_saturado - Vref_sin_saturar) / Ki
+        xi = xi - Ts * (Vref_saturado - Vref_sin_saturar) / Ki
 
 PASO 7 -- Aplicar y guardar:
     enviar Vref_saturado al AVR
@@ -267,9 +267,9 @@ PASO 4 -- Ley de control:
     Vref_sin_saturar = Vref0 + Kp * error + Ki * xi_pi
     Vref_saturado    = clip(Vref_sin_saturar, VREF_MIN, VREF_MAX)
 
-PASO 5 -- Anti-windup (retrocalculo) -- mismo signo que el LQI, ver nota:
+PASO 5 -- Anti-windup (retrocalculo) -- SIGNO OPUESTO al del LQI, ver nota:
     SI Ki != 0:
-        xi_pi = xi_pi - (Vref_saturado - Vref_sin_saturar) / Ki
+        xi_pi = xi_pi + Ts * (Vref_saturado - Vref_sin_saturar) / Ki
 
 PASO 6 -- Aplicar y guardar:
     enviar Vref_saturado al AVR
@@ -290,11 +290,34 @@ PASO 6 -- Aplicar y guardar:
   desajuste aqui genera un transitorio de arranque espurio (verificado,
   ver conversacion).
 
-- Anti-windup (LQI paso 6, PI paso 5): el signo de esta formula se
-  verifico dos veces en este proyecto tras encontrar el error en cada
-  caso -- probarlo siempre con una saturacion SEVERA y SOSTENIDA (no un
-  escalon suave), que es la unica que lo revela con claridad. Mismo
-  signo/formula en ambos reguladores.
+- Anti-windup (LQI paso 6, PI paso 5): esta formula se corrigio DOS
+  VECES en este proyecto tras encontrar sendos errores -- uno afectaba
+  a AMBOS reguladores (faltaba el factor Ts, la correccion resultaba
+  ~10 veces mas fuerte de lo debido y podia generar un "punto fijo"
+  espurio: el regulador se quedaba pegado a un limite aunque el error
+  real ya hubiera cambiado de signo); el segundo afectaba SOLO al LQI
+  (su ley de control tiene un signo menos explicito delante de
+  Ki*xi -- Vref = Vref0 - Kx.x_hat - Ki*xi, a diferencia del PI que
+  tiene signo mas -- Vref = Vref0 + Kp*e + Ki*xi -- asi que el LQI
+  necesita el signo OPUESTO al del PI en esta formula, no el mismo).
+  NINGUNO de los dos errores se notaba con una saturacion leve o un
+  escalon moderado -- solo se revelaban con una saturacion SEVERA Y
+  SOSTENIDA, donde el estado integral divergia sin limite (verificado:
+  en un caso concreto crecio a mas de mil millones en 30 segundos)
+  mientras la señal de salida parecia comportarse con normalidad,
+  enmascarando el problema. Si se traduce esta logica a otra
+  plataforma o se modifica el diseno, PROBARLA siempre con un ensayo
+  de saturacion severa antes de darla por buena -- un escalon suave no
+  es suficiente para confiar en que el anti-windup esta bien
+  implementado.
+
+- El signo/factor correctos, en TERMINOS GENERALES: identificar como
+  aparece Ki multiplicando al estado integral en la ley de control
+  propia (con signo mas o signo menos), y elegir el signo de esta
+  formula de anti-windup de forma que, durante saturacion SEVERA y
+  SOSTENIDA, el estado integral quede ACOTADO (no crezca sin limite).
+  Probar ambos signos si hay duda -- el signo equivocado diverge de
+  forma inequivoca bajo esa prueba, no hay ambiguedad en el resultado.
 
 - Vref_aplicado es lo que alimenta el ciclo SIGUIENTE (u_prev del LQI,
   o simplemente el punto de partida del PI) -- no Vref_sin_saturar. El
