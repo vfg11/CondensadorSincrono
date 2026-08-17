@@ -91,7 +91,7 @@ def linear_step_test(controller_type, Ar, Br, Cr, Ts, t_total, step_size, t_even
             Vref_unclamped = Vref0 - float(Kx @ x_hat) - Ki_ * xi
             Vref = float(np.clip(Vref_unclamped, VREF_MIN, VREF_MAX))
             if Ki_ != 0.0:
-                xi += Ts * (Vref - Vref_unclamped) / Ki_
+                xi -= Ts * (Vref - Vref_unclamped) / Ki_
         else:
             raise ValueError(controller_type)
 
